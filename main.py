@@ -1,11 +1,20 @@
 import numpy as np
+# Note: mathematical article is not written yet.
+# "Formula (x.x)" expression means that this formula is numbered in the article with an x.x number
+# See README.md for mathematics
 
 
+# Returns random matrix W of {-1, 0, 1} | Formula (x.x)
+# Probability of element to be 1 or -1: k/(2*N), to be 0: 1 - k/N
+# RETURNS NOT A NUMPY.MATRIX
 def W_calc(k, N, M):
     W = []
     for i in range(N):
+        # Making a new row
         W.append([])
+        # Fill a new row
         for j in range(M):
+            # Take a random number [0; 100] for emulating probability
             p = np.random.randint(0, 101)
             if p < 100 * k / N:
                 if p < (k / (2 * N)) * 100:
@@ -17,25 +26,32 @@ def W_calc(k, N, M):
     return W
 
 
+# Sigma function for phenotype calculation | Formula (x.x)
 def sigma_calc(z):
     return 1 / (1 + np.exp(z))
 
 
+# Calculate phenotype: vector of [0; 1] floats | Formula (x.x)
 def f_calc(M, N, W, S, h):
     f_wektor = []
+    # Filling vector
     for i in range(M):
         temp = 0
         for j in range(N):
+            # W.item is a W_ji element of matrix, because W is a numpy.matrix type here
             temp += W.item(j, i) * S[j]
         temp -= h
         f_wektor.append(sigma_calc(temp))
     return f_wektor
 
 
+# Calculate W_tr (Fitness Potential) | Formula (x.x)
 def w_tr_calc(C, f, B, M):
+    # Calculate lineal part of W_tr
     lineal = 0
     for i in range(M):
         lineal += C[i] * f[i]
+    # Calculate double sum part
     double_sum = 0
     for i in range(M):
         for j in range(M):
@@ -43,10 +59,12 @@ def w_tr_calc(C, f, B, M):
     return lineal + double_sum / 2
 
 
+# mutate takes a genotype and mutates it with the following mechanism
+# Every coordinate of a vector changes to opposite with probability of p_mut
 def mutate(S, p_mut):
     for i in range(len(S)):
+        # Emulating probability
         p = np.random.randint(0, 101)
-        # Чем больше p_mut тем больше шансов мутировать
         if p < p_mut:
             if S[i]:
                 S[i] = 0
@@ -55,49 +73,71 @@ def mutate(S, p_mut):
 
 
 def d_alg(M, N, k, h, p_mut):
-    # Высчитываем рандомный вектор S
+    # Calculate S vector | Formula (x.x)
+    # It is genotype of a first generation
     S = []
     for i in range(N):
         S.append(np.random.randint(0, 2))
-    # Высчитываем рандомный вектор C
+    # Calculate C vector | Formula (x.x)
     C = []
     for i in range(M):
         C.append(np.random.randint(0, 2))
-    # Высчитываем рандомную симметричную матрицу B
+    # Calculate **symmetric** B matrix | Formula (x.x)
     B_asymmetric = np.random.randint(0, 2, size=(M, M), dtype='int')
     B = (B_asymmetric + B_asymmetric.T) % 2
-    # Высчитываем рандомную матрицу W
+    # Calculate W matrix | Formula (x.x)
     W = np.matrix(W_calc(k, N, M))
-    # Высчитываем изначальный вектор фенотипа f
+    # Calculate f vector | Formula (x.x)
+    # It is phenotype of a first generation
     f = f_calc(M, N, W, S, h)
-    # S_new будет мутированный генотип с которым будем сравнивать старый
+    # S_new is a genotype of generation
+    # At first equal to a current generation, then mutates and
+    # Either becomes a genotype of a new generation
+    # Or dies and turns back into previous
     S_new = []
     for i in range(N):
         S_new.append(S[i])
 
-    for t in range(250):
-        # Мутируем гены
+    for t in range(1000):
+        # Mutate S_new
         mutate(S_new, p_mut)
-        # Высчитываем новый фенотип
+        # Calculates a phenotype of mutated generation
         f_new = f_calc(M, N, W, S_new, h)
-        # Сравниваем нужно ли мутировать
+        # If Fitness Potential of mutated generation is more than of previous ...
         if w_tr_calc(C, f, B, M) > w_tr_calc(C, f_new, B, M):
+            # ... replace old genotype and phenotype with a new one ...
             for i in range(N):
                 S[i] = S_new[i]
+            f = f_new
         else:
+            # ... else keep the old generation
             for i in range(N):
                 S_new[i] = S[i]
     return w_tr_calc(C, f, B, M)
 
 
 if __name__ == '__main__':
-    # Looking for dependence of F from p_mut
+    # M - Size of phenotype vector
+    # N - Size of genotype vector
+
+    # -- Looking for dependence of Fitness Potential from p_mut --
 
     # Consts in this case
     M_main, N_main, k_main, h_main = 5, 10, 5, 2
-    p_mut_main = 10
+
+    # w_max will contain maximal Fitness Potential we will get
+    w_max = 0
+    # p_mut_w_max will contain p_mut which gave us maximal Fitness Potential
+    p_mut_w_max = 0
+
+    p_mut_main = 5
     print(f'{M_main=}, {N_main=}, {k_main=}, {h_main=}')
     while p_mut_main <= 100:
-        print(f'{p_mut_main=} Got:',
-              d_alg(M_main, N_main, k_main, h_main, p_mut_main))
-        p_mut_main += 10
+        output = d_alg(M_main, N_main, k_main, h_main, p_mut_main)
+        if output > w_max:
+            w_max = output
+            p_mut_w_max = p_mut_main
+        print(f'{p_mut_main=} Got:', output)
+        p_mut_main += 5
+    print(f'Maximal Fitness potential we\'ve got: {w_max}\n'
+          f'Achieved with Mutation probability {p_mut_w_max}%')
