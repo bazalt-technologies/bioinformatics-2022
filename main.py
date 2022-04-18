@@ -121,23 +121,26 @@ if __name__ == '__main__':
     # N - Size of genotype vector
 
     # -- Looking for dependence of Fitness Potential from p_mut --
+    # Expecting p_mut to be high on average.
 
     # Consts in this case
     M_main, N_main, k_main, h_main = 5, 10, 5, 2
 
-    # w_max will contain maximal Fitness Potential we will get
-    w_max = 0
-    # p_mut_w_max will contain p_mut which gave us maximal Fitness Potential
-    p_mut_w_max = 0
+    # w_arr is the array of tuples (w_tr, p_mut)
+    # where w_tr is a Fitness Potential achieved with probability p_mut
+    w_arr = []
 
     p_mut_main = 5
-    print(f'{M_main=}, {N_main=}, {k_main=}, {h_main=}')
+    print(f'{M_main = }, {N_main = }, {k_main = }, {h_main = }')
     while p_mut_main <= 100:
         output = d_alg(M_main, N_main, k_main, h_main, p_mut_main)
-        if output > w_max:
-            w_max = output
-            p_mut_w_max = p_mut_main
-        print(f'{p_mut_main=} Got:', output)
+        w_arr.append((output, p_mut_main))
         p_mut_main += 5
-    print(f'Maximal Fitness potential we\'ve got: {w_max}\n'
-          f'Achieved with Mutation probability {p_mut_w_max}%')
+
+    # Showing 5 most successful runs
+    w_arr.sort(reverse=True)
+    w_arr = w_arr[0:5]
+    w_arr.sort(key=lambda x: x[1], reverse=True)
+
+    print("Biggest Fitness Potentials:")
+    print(w_arr)
