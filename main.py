@@ -102,7 +102,7 @@ def from_p_mut():
     # M - Size of phenotype vector
     # N - Size of genotype vector
 
-    iterations = 900
+    iterations = 500
     # -- Looking for dependence of Fitness Potential from p_mut --
     # Consts in this case
     M_main, N_main, k_main, h_main = 20, 40, 4, 2
@@ -131,13 +131,14 @@ def from_p_mut():
     # w_arr is the array of tuples (w_tr, p_mut)
     # where w_tr is a Fitness Potential achieved with probability p_mut
     w0 = w_tr_calc(C, f, B, M_main)
+    fitness_c = 0.1/w0
     w_arr = []
     p_mut_main = 1
     print(f'{M_main = }, {N_main = }, {k_main = }, {h_main = }')
     while p_mut_main <= 40:
         start = time.time()
         output = []
-        for kk in range(75):
+        for kk in range(5):
             output.append(d_alg(M_main, N_main, h_main, p_mut_main, S, C, B, W, f, iterations))
         end = time.time()
         ou = 0
@@ -156,11 +157,11 @@ def from_p_mut():
             break
     figure, ax = plt.subplots(nrows=1, ncols=1)
     x = [a[1] for a in w_arr]
-    y = [np.exp(a[0]) for a in w_arr]
+    y = [np.exp(fitness_c * a[0]) for a in w_arr]
     ax.plot(x, y)
     ax.set_ylabel("Fitness")
     ax.set_xlabel("Mutation Probability")
-    titl = "F(p_mut) calculation\nF(0) = " + str(int(np.exp(w0)))
+    titl = "F(p_mut) calculation\nF(0) = " + str(0.1)
     ax.set(title=titl)
     plt.show()
 
@@ -197,14 +198,15 @@ def from_iterations():
     # w_arr is the array of tuples (w_tr, p_mut)
     # where w_tr is a Fitness Potential achieved with probability p_mut
     w0 = w_tr_calc(C, f, B, M_main)
+    fitness_c = 0.1/w0
     w_arr = []
     iterations = 100
     print(f'{M_main = }, {N_main = }, {k_main = }, {h_main = }')
     global_start = time.time()
-    while iterations <= 3000:
+    while iterations <= 3500:
         start = time.time()
         output = []
-        for kk in range(75):
+        for kk in range(5):
             output.append(d_alg(M_main, N_main, h_main, p_mut_main, S, C, B, W, f, iterations))
         end = time.time()
         ou = 0
@@ -213,16 +215,16 @@ def from_iterations():
         ou /= len(output)
         print(f'w_tr = {ou} {iterations = } time: {(end - start)}s')
         w_arr.append((ou, iterations))
-        iterations += 150
+        iterations += 300
     global_end = time.time()
 
     figure, ax = plt.subplots(nrows=1, ncols=1)
     x = [a[1] for a in w_arr]
-    y = [np.exp(a[0]) for a in w_arr]
+    y = [np.exp(fitness_c*a[0]) for a in w_arr]
     ax.plot(x, y)
     ax.set_ylabel("Fitness")
     ax.set_xlabel("Iterations")
-    titl = "F(iterations) calculation\nF(0) = " + str(int(np.exp(w0)))
+    titl = "F(iterations) calculation\nF(0) = " + str(0.1)
     ax.set(title=titl)
     plt.show()
 
