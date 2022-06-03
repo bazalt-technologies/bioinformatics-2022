@@ -1,6 +1,7 @@
 # Визуализация простейшего алгоритма эволюции
 
 from random import random
+import matplotlib.pyplot as plt
 
 # Генерации случайной матрицы 2 на 2
 def choice22Matr(K, N, M, q):
@@ -62,7 +63,7 @@ def verySimpleEvol(gamma, Tevol, M, N, barW, s0):
 
     return maxW, Wpotcur, Time, sfinal
 
-import matplotlib.pyplot as plt
+
 
 def main():
     gamma = 1

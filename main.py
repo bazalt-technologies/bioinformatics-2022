@@ -1,4 +1,8 @@
 import numpy as np
+import time
+import matplotlib.pyplot as plt
+
+
 # Note: mathematical article is not written yet.
 # "Formula (x.x)" expression means that this formula is numbered in the article with an x.x number
 # See README.md for mathematics
@@ -15,7 +19,7 @@ def W_calc(k, N, M):
         # Fill a new row
         for j in range(M):
             # Take a random number [0; 100] for emulating probability
-            p = np.random.randint(0, 101)
+            p = np.random.randint(0, 10001) / 100
             if p < 100 * k / N:
                 if p < (k / (2 * N)) * 100:
                     W[i].append(1)
@@ -72,75 +76,162 @@ def mutate(S, p_mut):
                 S[i] = 1
 
 
-def d_alg(M, N, k, h, p_mut):
-    # Calculate S vector | Formula (x.x)
-    # It is genotype of a first generation
-    S = []
-    for i in range(N):
-        S.append(np.random.randint(0, 2))
-    # Calculate C vector | Formula (x.x)
-    C = []
-    for i in range(M):
-        C.append(np.random.randint(0, 2))
-    # Calculate **symmetric** B matrix | Formula (x.x)
-    B_asymmetric = np.random.randint(0, 2, size=(M, M), dtype='int')
-    B = (B_asymmetric + B_asymmetric.T) % 2
-    # Calculate W matrix | Formula (x.x)
-    W = np.matrix(W_calc(k, N, M))
-    # Calculate f vector | Formula (x.x)
-    # It is phenotype of a first generation
-    f = f_calc(M, N, W, S, h)
-    # S_new is a genotype of generation
-    # At first equal to a current generation, then mutates and
-    # Either becomes a genotype of a new generation
-    # Or dies and turns back into previous
+def d_alg(M, N, h, p_mut, S, C, B, W, f, iterations):
     S_new = []
     for i in range(N):
         S_new.append(S[i])
 
-    for t in range(1000):
+    for t in range(iterations):
         # Mutate S_new
         mutate(S_new, p_mut)
         # Calculates a phenotype of mutated generation
         f_new = f_calc(M, N, W, S_new, h)
         # If Fitness Potential of mutated generation is more than of previous ...
-        if w_tr_calc(C, f, B, M) > w_tr_calc(C, f_new, B, M):
+        if w_tr_calc(C, f, B, M) < w_tr_calc(C, f_new, B, M):
             # ... replace old genotype and phenotype with a new one ...
             for i in range(N):
                 S[i] = S_new[i]
             f = f_new
         else:
             # ... else keep the old generation
-            for i in range(N):
-                S_new[i] = S[i]
+            S_new = S
     return w_tr_calc(C, f, B, M)
 
 
-if __name__ == '__main__':
+def from_p_mut():
     # M - Size of phenotype vector
     # N - Size of genotype vector
 
+    iterations = 900
     # -- Looking for dependence of Fitness Potential from p_mut --
-    # Expecting p_mut to be high on average.
-
     # Consts in this case
-    M_main, N_main, k_main, h_main = 5, 10, 5, 2
-
+    M_main, N_main, k_main, h_main = 20, 40, 4, 2
+    # Calculate S vector | Formula (x.x)
+    # It is genotype of a first generation
+    S = []
+    for i in range(N_main):
+        S.append(np.random.randint(0, 2))
+    # Calculate C vector | Formula (x.x)
+    C = []
+    for i in range(M_main):
+        C.append(np.random.randint(0, 2))
+    # Calculate **symmetric** B matrix | Formula (x.x)
+    B_asymmetric = np.random.randint(0, 2, size=(M_main, M_main), dtype='int')
+    B = (B_asymmetric + B_asymmetric.T) % 2
+    # Calculate W matrix | Formula (x.x)
+    W = np.matrix(W_calc(k_main, N_main, M_main))
+    # Calculate f vector | Formula (x.x)
+    # It is phenotype of a first generation
+    f = f_calc(M_main, N_main, W, S, h_main)
+    # S_new is a genotype of generation
+    # At first equal to a current generation, then mutates and
+    # Either becomes a genotype of a new generation
+    # Or dies and turns back into previous
+    # -- p_mut, alpha, t --
     # w_arr is the array of tuples (w_tr, p_mut)
     # where w_tr is a Fitness Potential achieved with probability p_mut
+    w0 = w_tr_calc(C, f, B, M_main)
     w_arr = []
-
-    p_mut_main = 5
+    p_mut_main = 1
     print(f'{M_main = }, {N_main = }, {k_main = }, {h_main = }')
-    while p_mut_main <= 100:
-        output = d_alg(M_main, N_main, k_main, h_main, p_mut_main)
-        w_arr.append((output, p_mut_main))
-        p_mut_main += 5
+    while p_mut_main <= 40:
+        start = time.time()
+        output = []
+        for kk in range(75):
+            output.append(d_alg(M_main, N_main, h_main, p_mut_main, S, C, B, W, f, iterations))
+        end = time.time()
+        ou = 0
+        for i in range(len(output)):
+            ou += output[i]
+        ou /= len(output)
+        print(f'w_tr = {ou} {p_mut_main = } time: {(end - start)}s')
+        w_arr.append((ou, p_mut_main))
+        p_mut_main += 3
+    for lol in range(1, len(w_arr) - 1):
+        try:
+            if w_arr[lol - 1][0] - w_arr[lol][0] > 0.7 and w_arr[lol + 1][0] - w_arr[lol][0] > 0.7 \
+                    or w_arr[lol - 1][0] - w_arr[lol][0] < -0.7 and w_arr[lol + 1][0] - w_arr[lol][0] < -0.7:
+                w_arr.pop(lol)
+        except IndexError:
+            break
+    figure, ax = plt.subplots(nrows=1, ncols=1)
+    x = [a[1] for a in w_arr]
+    y = [np.exp(a[0]) for a in w_arr]
+    ax.plot(x, y)
+    ax.set_ylabel("Fitness")
+    ax.set_xlabel("Mutation Probability")
+    titl = "F(p_mut) calculation\nF(0) = " + str(int(np.exp(w0)))
+    ax.set(title=titl)
+    plt.show()
 
-    # Showing 5 most successful runs
+    print("Fitness Potentials:")
     w_arr.sort(reverse=True)
-    w_arr = w_arr[0:5]
-    w_arr.sort(key=lambda x: x[1], reverse=True)
-
-    print("Biggest Fitness Potentials:")
     print(w_arr)
+
+
+def from_iterations():
+    M_main, N_main, k_main, h_main = 10, 20, 4, 2
+    p_mut_main = 35
+    # Calculate S vector | Formula (x.x)
+    # It is genotype of a first generation
+    S = []
+    for i in range(N_main):
+        S.append(np.random.randint(0, 2))
+    # Calculate C vector | Formula (x.x)
+    C = []
+    for i in range(M_main):
+        C.append(np.random.randint(0, 2))
+    # Calculate **symmetric** B matrix | Formula (x.x)
+    B_asymmetric = np.random.randint(0, 2, size=(M_main, M_main), dtype='int')
+    B = (B_asymmetric + B_asymmetric.T) % 2
+    # Calculate W matrix | Formula (x.x)
+    W = np.matrix(W_calc(k_main, N_main, M_main))
+    # Calculate f vector | Formula (x.x)
+    # It is phenotype of a first generation
+    f = f_calc(M_main, N_main, W, S, h_main)
+    # S_new is a genotype of generation
+    # At first equal to a current generation, then mutates and
+    # Either becomes a genotype of a new generation
+    # Or dies and turns back into previous
+    # -- p_mut, alpha, t --
+    # w_arr is the array of tuples (w_tr, p_mut)
+    # where w_tr is a Fitness Potential achieved with probability p_mut
+    w0 = w_tr_calc(C, f, B, M_main)
+    w_arr = []
+    iterations = 100
+    print(f'{M_main = }, {N_main = }, {k_main = }, {h_main = }')
+    global_start = time.time()
+    while iterations <= 3000:
+        start = time.time()
+        output = []
+        for kk in range(75):
+            output.append(d_alg(M_main, N_main, h_main, p_mut_main, S, C, B, W, f, iterations))
+        end = time.time()
+        ou = 0
+        for i in output:
+            ou += i
+        ou /= len(output)
+        print(f'w_tr = {ou} {iterations = } time: {(end - start)}s')
+        w_arr.append((ou, iterations))
+        iterations += 150
+    global_end = time.time()
+
+    figure, ax = plt.subplots(nrows=1, ncols=1)
+    x = [a[1] for a in w_arr]
+    y = [np.exp(a[0]) for a in w_arr]
+    ax.plot(x, y)
+    ax.set_ylabel("Fitness")
+    ax.set_xlabel("Iterations")
+    titl = "F(iterations) calculation\nF(0) = " + str(int(np.exp(w0)))
+    ax.set(title=titl)
+    plt.show()
+
+    print("Fitness Potentials:")
+    w_arr.sort(reverse=True)
+    print(w_arr)
+    print(f"Calculated in {global_end - global_start}s")
+
+
+if __name__ == '__main__':
+    from_p_mut()
+    from_iterations()
